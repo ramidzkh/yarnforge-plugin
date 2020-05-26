@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
 public class RemapTask extends DefaultTask {
@@ -81,72 +82,43 @@ public class RemapTask extends DefaultTask {
 
         Path mappedClean = dir.resolve("remapped/clean");
         Path mappedPatched = dir.resolve("remapped/patched");
+	    Mercury mercury = new Mercury();
+	    mercury.getProcessors().add(MercuryRemapper.create(m));
+	    mercury.getClassPath().addAll(compileClasspath);
+	    mercury.getClassPath().add(patched);
+	    mercury.rewrite(main, dir.resolve("remapped/main"));
+	    project.getLogger().lifecycle(":remapped main");
+	    mercury.getClassPath().remove(patched);
 
-        try {
-            Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(m));
-            mercury.getClassPath().addAll(compileClasspath);
-            mercury.getClassPath().add(patched);
-            mercury.rewrite(main, dir.resolve("remapped/main"));
-            project.getLogger().lifecycle(":remapped main");
-        } finally {
-            System.gc();
-        }
+	    mercury.getClassPath().add(main);
+	    mercury.rewrite(patched, dir.resolve(mappedPatched));
+	    project.getLogger().lifecycle(":remapped patched");
+	    mercury.getClassPath().remove(patched);
 
-        try {
-            Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(m));
-            mercury.getClassPath().addAll(compileClasspath);
-            mercury.getClassPath().add(main);
-            mercury.getClassPath().add(patched);
-            mercury.getClassPath().addAll(testCompileClasspath);
-            mercury.rewrite(test, dir.resolve("remapped/test"));
-            project.getLogger().lifecycle(":remapped test");
-        } finally {
-            System.gc();
-        }
-
-        try {
-            Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(m));
-            mercury.getClassPath().addAll(compileClasspath);
-            mercury.getClassPath().add(main);
-            mercury.rewrite(patched, dir.resolve(mappedPatched));
-            project.getLogger().lifecycle(":remapped patched");
-        } finally {
-            System.gc();
-        }
-
-        try {
-            Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(m));
-            mercury.getClassPath().addAll(compileClasspath);
-            mercury.rewrite(clean, mappedClean);
-            project.getLogger().lifecycle(":remapped clean");
-        } finally {
-            System.gc();
-        }
+	    mercury.rewrite(clean, mappedClean);
+	    project.getLogger().lifecycle(":remapped clean");
 
         {
             project.getLogger().lifecycle(":patching");
+			try (Stream<Path> stream = Files.walk(mappedClean)) {
+                   stream.filter(Files::isRegularFile)
+					.forEach(c -> {
+						Path file = mappedClean.relativize(c);
 
-            Files.walk(mappedClean)
-                    .filter(Files::isRegularFile)
-                    .forEach(c -> {
-                        Path file = mappedClean.relativize(c);
+						try {
+							String patch = makePatch(file.toString(), new String(Files.readAllBytes(c)), new String(Files.readAllBytes(mappedPatched.resolve(file))));
 
-                        try {
-                            String patch = makePatch(file.toString(), new String(Files.readAllBytes(c)), new String(Files.readAllBytes(mappedPatched.resolve(file))));
+							if (patch != null) {
+								Path p = dir.resolve("remapped/patches").resolve(file + ".patch");
+								Files.createDirectories(p.getParent());
+								Files.write(p, patch.getBytes(), StandardOpenOption.CREATE);
+							}
+						} catch (IOException exception) {
+							exception.printStackTrace();
+						}
+					});
+			}
 
-                            if (patch != null) {
-                                Path p = dir.resolve("remapped/patches").resolve(file + ".patch");
-                                Files.createDirectories(p.getParent());
-                                Files.write(p, patch.getBytes(), StandardOpenOption.CREATE);
-                            }
-                        } catch (IOException exception) {
-                            exception.printStackTrace();
-                        }
-                    });
         }
     }
 
