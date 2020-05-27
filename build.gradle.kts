@@ -17,10 +17,11 @@
 plugins {
     `java-gradle-plugin`
     idea
+    `maven-publish`
 }
 
 group = "me.ramidzkh"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.1-SNAPSHOT"
 
 repositories {
     jcenter()
@@ -34,16 +35,18 @@ repositories {
         name = "MinecraftForge"
         url = uri("https://files.minecraftforge.net/maven")
     }
-
-    mavenLocal()
+    maven {
+        url = uri("https://oss.sonatype.org/content/groups/public/")
+    }
 }
 
 dependencies {
     implementation("com.google.guava", "guava", "29.0-jre")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.2.2.14")
-    implementation("org.cadixdev", "mercury", "local-0.1.0-SNAPSHOT")
+    implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
     implementation("org.ow2.asm", "asm-commons", "8.0.1")
     implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.170")
+    implementation("com.cloudbees", "diff4j", "1.2")
 }
 
 java {
