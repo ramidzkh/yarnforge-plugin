@@ -21,10 +21,15 @@ plugins {
 }
 
 group = "me.ramidzkh"
-version = "1.0.1-SNAPSHOT"
+version = "1.1.0-SNAPSHOT"
 
 repositories {
     jcenter()
+
+    maven {
+        name = "Sonatype"
+        url = uri("https://oss.sonatype.org/content/groups/public/")
+    }
 
     maven {
         name = "FabricMC"
@@ -35,18 +40,15 @@ repositories {
         name = "MinecraftForge"
         url = uri("https://files.minecraftforge.net/maven")
     }
-    maven {
-        url = uri("https://oss.sonatype.org/content/groups/public/")
-    }
 }
 
 dependencies {
     implementation("com.google.guava", "guava", "29.0-jre")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.2.2.14")
     implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
+    implementation("org.cadixdev", "lorenz", "0.5.2")
     implementation("org.ow2.asm", "asm-commons", "8.0.1")
-    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.170")
-    implementation("com.cloudbees", "diff4j", "1.2")
+    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.174")
 }
 
 java {

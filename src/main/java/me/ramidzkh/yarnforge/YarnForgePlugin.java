@@ -16,6 +16,8 @@
 
 package me.ramidzkh.yarnforge;
 
+import net.minecraftforge.gradle.common.task.ExtractMCPData;
+import net.minecraftforge.gradle.mcp.task.GenerateSRG;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -30,6 +32,18 @@ public class YarnForgePlugin implements Plugin<Project> {
             maven.setUrl(URI.create("https://maven.fabricmc.net/"));
         });
 
-        target.getTasks().register("remapYarn", RemapTask.class);
+        if (target.getPluginManager().hasPlugin("net.minecraftforge.gradle")) {
+            ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
+            target.getTasks().register("userRemapYarn", UserRemapTask.class, task -> {
+                task.dependsOn(extractData);
+                task.setSrgProvider(extractData::getOutput);
+            });
+        } else {
+            GenerateSRG createMcp2Obf = (GenerateSRG) target.project(":forge").getTasks().getByName("createMcp2Obf");
+            target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
+                task.dependsOn(createMcp2Obf);
+                task.setSrgProvider(createMcp2Obf::getOutput);
+            });
+        }
     }
 }

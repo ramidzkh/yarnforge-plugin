@@ -1,5 +1,5 @@
-.gradle/
-.idea/
-build/
-YarnForge/
-MinecraftForge/
+/.gradle/
+/.idea/
+/build/
+/YarnForge/
+/MinecraftForge/
