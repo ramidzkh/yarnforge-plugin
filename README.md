@@ -4,8 +4,9 @@ A Forge specific Gradle plugin to remap its sources to Yarn
 **Note:** Although the following says Yarn, you can use anything as long as it is usable by fabric-loom
 
 ## Usage for user mods
-`userRemapYarn --mappings net.fabricmc:yarn:<yarn version>`
-
+`userRemapYarn --mappings net.fabricmc:yarn:<yarn version> --no-damon`
+* Make sure at least 1GB of RAM has been assigned to gradle. This should have been done by default already.
+* `--no-daemon` is ***extremely important*** or gradle will leak memory until you run `daemon --stop`!
 ## Usage for Forge
 `clean setup setupMCP createMcp2Obf`
 
