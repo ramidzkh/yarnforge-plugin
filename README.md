@@ -3,6 +3,20 @@ A Forge specific Gradle plugin to remap its sources to Yarn
 
 **Note:** Although the following says Yarn, you can use anything as long as it is usable by fabric-loom
 
+## Setup
+* Clone this repo
+* In this repo copy/clone your target project
+* In the target's settings.gradle add `includeBuild("..")`
+* In the target's build.gradle add the following repositories to the buildscript
+  - https://oss.sonatype.org/content/groups/public/
+  - https://maven.fabricmc.net/
+* In the target's build.gradle add the following to the buildscript dependencies
+```
+classpath("me.ramidzkh:yarnforge-plugin:<version>")
+```
+(The version can be found in the build.gradle.kts)
+* Apply the `yarnforge-plugin` plugin
+
 ## Usage for user mods
 `userRemapYarn --mappings net.fabricmc:yarn:<yarn version>`
 
