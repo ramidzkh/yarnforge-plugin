@@ -18,10 +18,8 @@ package me.ramidzkh.yarnforge;
 
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
-import net.minecraftforge.gradle.common.util.MappingFile;
-import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
-import net.minecraftforge.gradle.common.util.McpNames;
-import net.minecraftforge.gradle.common.util.MinecraftExtension;
+import net.fabricmc.stitch.commands.CommandProposeFieldNames;
+import net.minecraftforge.gradle.common.util.*;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import org.cadixdev.lorenz.MappingSet;
 import org.gradle.api.DefaultTask;
@@ -31,14 +29,22 @@ import org.gradle.api.tasks.options.Option;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.Supplier;
-import java.util.zip.ZipFile;
 
 public class BaseRemappingTask extends DefaultTask {
 
+    private String version;
     private String mappings;
     protected Supplier<File> srg;
+
+    @Option(description = "Minecraft version", option = "version")
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     @Option(description = "Mappings", option = "mappings")
     public void setMappings(String mappings) {
@@ -75,10 +81,34 @@ public class BaseRemappingTask extends DefaultTask {
         return MavenArtifactDownloader.generate(getProject(), desc, false);
     }
 
-    public static TinyTree loadTree(Project project, String mappings) throws IOException {
-        try (ZipFile archive = new ZipFile(project.getConfigurations().detachedConfiguration(project.getDependencies().create(mappings)).getSingleFile());
-             BufferedReader reader = new BufferedReader(new InputStreamReader(archive.getInputStream(archive.getEntry("mappings/mappings.tiny"))))) {
-            return TinyMappingFactory.loadWithDetection(reader);
+    public TinyTree loadTree(Project project, String mappings) throws IOException {
+        try (FileSystem archive = FileSystems.newFileSystem(project.getConfigurations().detachedConfiguration(project.getDependencies().create(mappings)).getSingleFile().toPath(), null)) {
+            Path copy = Files.createTempFile("mappings", ".tiny");
+            Path output = Files.createTempFile("mappings", ".tiny");
+
+            Files.deleteIfExists(copy);
+            Files.deleteIfExists(output);
+
+            Files.copy(archive.getPath("mappings/mappings.tiny"), copy);
+
+            String[] args = {
+                    MinecraftRepo.create(project).getArtifact(Artifact.from("net.minecraft:client:" + version)).optionallyCache(null).asFile().getAbsolutePath(),
+                    copy.toAbsolutePath().toString(),
+                    output.toAbsolutePath().toString()
+            };
+
+            new CommandProposeFieldNames().run(args);
+
+            try (BufferedReader reader = Files.newBufferedReader(output)) {
+                return TinyMappingFactory.loadWithDetection(reader);
+            } finally {
+                Files.delete(copy);
+                Files.delete(output);
+            }
+        } catch (IOException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
         }
     }
 }
