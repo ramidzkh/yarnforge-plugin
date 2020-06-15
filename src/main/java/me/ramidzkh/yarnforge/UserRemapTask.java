@@ -38,6 +38,7 @@ public class UserRemapTask extends BaseRemappingTask {
                 mercury.getClassPath().add(file.toPath());
             }
 
+            project.getLogger().lifecycle(":remapping");
             mercury.rewrite(project.file("src/main/java").toPath(), project.file("remapped").toPath());
         } finally {
             System.gc();

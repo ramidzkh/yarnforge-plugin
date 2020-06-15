@@ -16,13 +16,17 @@
 
 package me.ramidzkh.yarnforge;
 
+import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
+import com.amadornes.artifactural.api.repository.ArtifactProvider;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
+import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.minecraftforge.gradle.common.util.*;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import org.cadixdev.lorenz.MappingSet;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.options.Option;
 
@@ -56,6 +60,10 @@ public class BaseRemappingTask extends DefaultTask {
     }
 
     protected MappingSet createMcpToYarn() throws IOException {
+        if (version == null || mappings == null) {
+            throw new GradleException("Missing --version and/or --mappings");
+        }
+
         Project project = getProject();
         String names;
 
@@ -69,7 +77,7 @@ public class BaseRemappingTask extends DefaultTask {
 
         MappingSet obfToMcp = MappingBridge.mergeMcpNames(MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(srg.get())), McpNames.load(findNames(names)));
         MappingSet obfToYarn = MappingBridge.loadTiny(MappingSet.create(), loadTree(project, mappings), "official", "named");
-        return obfToMcp.reverse().merge(obfToYarn);
+        return obfToYarn.reverse().merge(obfToMcp).reverse();
     }
 
     private File findNames(String mapping) {
@@ -91,24 +99,44 @@ public class BaseRemappingTask extends DefaultTask {
 
             Files.copy(archive.getPath("mappings/mappings.tiny"), copy);
 
-            String[] args = {
-                    MinecraftRepo.create(project).getArtifact(Artifact.from("net.minecraft:client:" + version)).optionallyCache(null).asFile().getAbsolutePath(),
-                    copy.toAbsolutePath().toString(),
-                    output.toAbsolutePath().toString()
-            };
-
-            new CommandProposeFieldNames().run(args);
+            proposeFieldNames(MinecraftRepo.create(project), version, copy, output);
 
             try (BufferedReader reader = Files.newBufferedReader(output)) {
                 return TinyMappingFactory.loadWithDetection(reader);
             } finally {
-                Files.delete(copy);
-                Files.delete(output);
+                Files.deleteIfExists(copy);
+                Files.deleteIfExists(output);
             }
         } catch (IOException exception) {
             throw exception;
         } catch (Exception exception) {
             throw new RuntimeException(exception);
         }
+    }
+
+    private static void proposeFieldNames(ArtifactProvider<ArtifactIdentifier> provider, String version, Path in, Path out) throws Exception {
+        File client = provider.getArtifact(Artifact.from("net.minecraft:client:" + version)).optionallyCache(null).asFile();
+        File server = provider.getArtifact(Artifact.from("net.minecraft:server:" + version)).optionallyCache(null).asFile();
+        File merged = File.createTempFile("merged", ".jar");
+
+        if (merged.exists()) {
+            merged.delete();
+        }
+
+        String[] mergeArgs = {
+                client.getAbsolutePath(),
+                server.getAbsolutePath(),
+                merged.getAbsolutePath()
+        };
+
+        new CommandMergeJar().run(mergeArgs);
+
+        String[] proposeArgs = {
+                merged.getAbsolutePath(),
+                in.toAbsolutePath().toString(),
+                out.toAbsolutePath().toString()
+        };
+
+        new CommandProposeFieldNames().run(proposeArgs);
     }
 }
