@@ -16,16 +16,15 @@
 
 package me.ramidzkh.yarnforge;
 
-import net.fabricmc.mapping.tree.ClassDef;
-import net.fabricmc.mapping.tree.FieldDef;
-import net.fabricmc.mapping.tree.MethodDef;
-import net.fabricmc.mapping.tree.TinyTree;
+import net.fabricmc.mapping.tree.*;
 import net.minecraftforge.gradle.common.util.MappingFile;
 import net.minecraftforge.gradle.common.util.McpNames;
 import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.*;
+
+import java.util.function.Consumer;
 
 public class MappingBridge {
 
@@ -46,10 +45,17 @@ public class MappingBridge {
             }
 
             for (MethodDef method : classDef.getMethods()) {
-                classMapping
+                MethodMapping methodMapping = classMapping
                         .getOrCreateMethodMapping(MethodSignature.of(method.getName(a), method.getDescriptor(a)))
-                        .setDeobfuscatedName(method.getName(b))
-                        .set(COMMENT, method.getComment());
+                        .setDeobfuscatedName(method.getName(b));
+                methodMapping.set(COMMENT, method.getComment());
+
+                for (ParameterDef parameter : method.getParameters()) {
+                    methodMapping
+                            .getOrCreateParameterMapping(parameter.getLocalVariableIndex())
+                            .setDeobfuscatedName(parameter.getName(b))
+                            .set(COMMENT, parameter.getComment());
+                }
             }
         }
 
@@ -79,24 +85,30 @@ public class MappingBridge {
     }
 
     public static MappingSet mergeMcpNames(MappingSet mappings, McpNames names) {
-        for (TopLevelClassMapping classMapping : mappings.getTopLevelClassMappings()) {
-            mergeMcpNames(classMapping, names);
-        }
+        iterateClasses(mappings, classMapping -> {
+            for (FieldMapping fieldMapping : classMapping.getFieldMappings()) {
+                fieldMapping.setDeobfuscatedName(names.rename(fieldMapping.getDeobfuscatedName()));
+            }
+
+            for (MethodMapping methodMapping : classMapping.getMethodMappings()) {
+                methodMapping.setDeobfuscatedName(names.rename(methodMapping.getDeobfuscatedName()));
+            }
+        });
 
         return mappings;
     }
 
-    private static void mergeMcpNames(ClassMapping<?, ?> classMapping, McpNames names) {
-        for (FieldMapping fieldMapping : classMapping.getFieldMappings()) {
-            fieldMapping.setDeobfuscatedName(names.rename(fieldMapping.getDeobfuscatedName()));
+    public static void iterateClasses(MappingSet mappings, Consumer<ClassMapping<?, ?>> consumer) {
+        for (TopLevelClassMapping classMapping : mappings.getTopLevelClassMappings()) {
+            iterateClass(classMapping, consumer);
         }
+    }
 
-        for (MethodMapping methodMapping : classMapping.getMethodMappings()) {
-            methodMapping.setDeobfuscatedName(names.rename(methodMapping.getDeobfuscatedName()));
-        }
+    private static void iterateClass(ClassMapping<?, ?> classMapping, Consumer<ClassMapping<?, ?>> consumer) {
+        consumer.accept(classMapping);
 
         for (InnerClassMapping innerClassMapping : classMapping.getInnerClassMappings()) {
-            mergeMcpNames(innerClassMapping, names);
+            iterateClass(innerClassMapping, consumer);
         }
     }
 }
