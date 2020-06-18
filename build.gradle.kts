@@ -48,7 +48,6 @@ dependencies {
     implementation("net.fabricmc", "tiny-mappings-parser", "0.3.0+build.17")
     implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "lorenz", "0.5.2")
-    implementation("org.ow2.asm", "asm-commons", "8.0.1")
     implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.174")
 }
 

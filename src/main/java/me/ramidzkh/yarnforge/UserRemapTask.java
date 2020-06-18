@@ -32,7 +32,7 @@ public class UserRemapTask extends BaseRemappingTask {
 
         try {
             Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn()));
+            mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn(), true));
 
             for (File file : project.getConfigurations().getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).getFiles()) {
                 mercury.getClassPath().add(file.toPath());

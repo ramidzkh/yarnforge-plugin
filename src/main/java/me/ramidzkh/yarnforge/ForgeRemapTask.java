@@ -61,7 +61,7 @@ public class ForgeRemapTask extends BaseRemappingTask {
         Path mappedPatched = dir.resolve("remapped/patched");
 
         Mercury mercury = new Mercury();
-        mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn()));
+        mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn(), true));
         mercury.getClassPath().addAll(compileClasspath);
 
         {
