@@ -39,7 +39,7 @@ public class YarnForgePlugin implements Plugin<Project> {
                 task.setSrgProvider(extractData::getOutput);
             });
         } else {
-            GenerateSRG createMcp2Obf = (GenerateSRG) target.project(":forge").getTasks().getByName("createMcp2Obf");
+            GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
                 task.dependsOn(createMcp2Obf);
                 task.setSrgProvider(createMcp2Obf::getOutput);
