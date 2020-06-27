@@ -45,7 +45,7 @@ public class BaseRemappingTask extends DefaultTask {
     private String mappings;
     protected Supplier<File> srg;
 
-    @Option(description = "Minecraft version", option = "version")
+    @Option(description = "Minecraft version", option = "mc-version")
     public void setVersion(String version) {
         this.version = version;
     }
