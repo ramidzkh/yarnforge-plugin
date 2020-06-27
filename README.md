@@ -18,14 +18,14 @@ classpath("me.ramidzkh:yarnforge-plugin:<version>")
 * Apply the `yarnforge-plugin` plugin
 
 ## Usage for user mods
-`userRemapYarn --mappings net.fabricmc:yarn:<yarn version> --version <mc version> --no-damon`
+`userRemapYarn --mappings net.fabricmc:yarn:<yarn version> --mc-version <mc version> --no-daemon`
 * Make sure at least 1GB of RAM has been assigned to gradle. This should have been done by default already.
 * `--no-daemon` is ***extremely important*** or gradle will leak memory until you run `daemon --stop`!
 
 ## Usage for Forge
 `clean setup setupMCP createMcp2Obf`
 
-`forgeRemapYarn --mappings net.fabricmc:yarn:<yarn version>  --version <mc version> --no-daemon`
+`forgeRemapYarn --mappings net.fabricmc:yarn:<yarn version>  --mc-version <mc version> --no-daemon`
 * Assign 3GB of RAM to Gradle. If you're starved for RAM, 2GB will usually work but will be slightly slower.
 * `--no-daemon` is ***extremely important*** or gradle will leak over a gig of memory until you run `daemon --stop`!
 * The `remapped/clean` and `remapped/patched` directories contain Minecraft code
