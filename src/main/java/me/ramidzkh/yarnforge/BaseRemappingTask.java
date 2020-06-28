@@ -37,13 +37,12 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.Supplier;
 
-public class BaseRemappingTask extends DefaultTask {
+public abstract class BaseRemappingTask extends DefaultTask {
 
     private String version;
     private String mappings;
-    protected Supplier<File> srg;
+
 
     @Option(description = "Minecraft version", option = "mc-version")
     public void setVersion(String version) {
@@ -55,9 +54,7 @@ public class BaseRemappingTask extends DefaultTask {
         this.mappings = mappings;
     }
 
-    public void setSrgProvider(Supplier<File> srg) {
-        this.srg = srg;
-    }
+    public abstract MappingSet getMcpToObf() throws IOException;
 
     protected MappingSet createMcpToYarn() throws IOException {
         if (version == null || mappings == null) {
@@ -65,19 +62,10 @@ public class BaseRemappingTask extends DefaultTask {
         }
 
         Project project = getProject();
-        String names;
 
-        MinecraftExtension extension = project.getExtensions().findByType(MinecraftExtension.class);
-
-        if (extension != null) {
-            names = extension.getMappings();
-        } else {
-            names = project.project(":clean").getExtensions().findByType(MinecraftExtension.class).getMappings();
-        }
-
-        MappingSet obfToMcp = MappingBridge.mergeMcpNames(MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(srg.get())), McpNames.load(findNames(names)));
+        MappingSet mcpToObf = getMcpToObf();
         MappingSet obfToYarn = MappingBridge.loadTiny(MappingSet.create(), loadTree(project, mappings), "official", "named");
-        return obfToYarn.reverse().merge(obfToMcp).reverse();
+        return mcpToObf.merge(obfToYarn);
     }
 
     private File findNames(String mapping) {

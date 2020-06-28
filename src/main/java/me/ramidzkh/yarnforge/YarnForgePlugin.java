@@ -33,16 +33,21 @@ public class YarnForgePlugin implements Plugin<Project> {
         });
 
         if (target.getPluginManager().hasPlugin("net.minecraftforge.gradle")) {
-            ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
+            // FG gives userdev "createMcpToSrg", but no direct mcp->obf so we have to merge it ourselves.
+            ExtractMCPData createObfToSrg = (ExtractMCPData) target.getTasks().getByName("extractSrg");
+            GenerateSRG createMcpToSrg = (GenerateSRG) target.getTasks().getByName("createMcpToSrg");
             target.getTasks().register("userRemapYarn", UserRemapTask.class, task -> {
-                task.dependsOn(extractData);
-                task.setSrgProvider(extractData::getOutput);
+                task.dependsOn(createObfToSrg);
+                task.dependsOn(createMcpToSrg);
+                task.setObfToSrg(createObfToSrg::getOutput);
+                task.setMcpToSrg(createMcpToSrg::getOutput);
             });
         } else {
+            // Thanks for the consistent task naming, ForgeGradle!
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
                 task.dependsOn(createMcp2Obf);
-                task.setSrgProvider(createMcp2Obf::getOutput);
+                task.setMcp2Obf(createMcp2Obf::getOutput);
             });
         }
     }

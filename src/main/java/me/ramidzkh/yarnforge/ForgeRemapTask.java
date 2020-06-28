@@ -17,6 +17,8 @@
 package me.ramidzkh.yarnforge;
 
 import com.cloudbees.diff.Diff;
+import net.minecraftforge.gradle.common.util.MappingFile;
+import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.Project;
@@ -31,11 +33,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ForgeRemapTask extends BaseRemappingTask {
-
+    protected Supplier<File> mcp2Obf;
+    
+    public void setMcp2Obf(Supplier<File> mcp2Obf) {
+        this.mcp2Obf = mcp2Obf;
+    }
+    
     public ForgeRemapTask() {
         setDescription("(Forge specific) Remap sources and patches");
     }
@@ -127,5 +135,10 @@ public class ForgeRemapTask extends BaseRemappingTask {
         String modifiedData = b.replace("\r\n", "\n");
         Diff diff = Diff.diff(new StringReader(originalData), new StringReader(modifiedData), false);
         return !diff.isEmpty() ? diff.toUnifiedDiff(originalRelative, modifiedRelative, new StringReader(originalData), new StringReader(modifiedData), 3).replaceAll("\r?\n", "\n") : null;
+    }
+
+    @Override
+    public MappingSet getMcpToObf() throws IOException {
+        return MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(mcp2Obf.get()));
     }
 }

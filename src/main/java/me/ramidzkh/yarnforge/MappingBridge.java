@@ -83,32 +83,4 @@ public class MappingBridge {
 
         return mappings;
     }
-
-    public static MappingSet mergeMcpNames(MappingSet mappings, McpNames names) {
-        iterateClasses(mappings, classMapping -> {
-            for (FieldMapping fieldMapping : classMapping.getFieldMappings()) {
-                fieldMapping.setDeobfuscatedName(names.rename(fieldMapping.getDeobfuscatedName()));
-            }
-
-            for (MethodMapping methodMapping : classMapping.getMethodMappings()) {
-                methodMapping.setDeobfuscatedName(names.rename(methodMapping.getDeobfuscatedName()));
-            }
-        });
-
-        return mappings;
-    }
-
-    public static void iterateClasses(MappingSet mappings, Consumer<ClassMapping<?, ?>> consumer) {
-        for (TopLevelClassMapping classMapping : mappings.getTopLevelClassMappings()) {
-            iterateClass(classMapping, consumer);
-        }
-    }
-
-    private static void iterateClass(ClassMapping<?, ?> classMapping, Consumer<ClassMapping<?, ?>> consumer) {
-        consumer.accept(classMapping);
-
-        for (InnerClassMapping innerClassMapping : classMapping.getInnerClassMappings()) {
-            iterateClass(innerClassMapping, consumer);
-        }
-    }
 }

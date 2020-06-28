@@ -16,6 +16,8 @@
 
 package me.ramidzkh.yarnforge;
 
+import net.minecraftforge.gradle.common.util.MappingFile;
+import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.Project;
@@ -23,9 +25,27 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.function.Supplier;
 
 public class UserRemapTask extends BaseRemappingTask {
+    Supplier<File> mcpToSrg;
+    Supplier<File> ObfToSrg;
 
+    public void setMcpToSrg(Supplier<File> mcpToSrg) {
+        this.mcpToSrg = mcpToSrg;
+    }
+
+    public void setObfToSrg(Supplier<File> obfToSrg) {
+        this.ObfToSrg = obfToSrg;
+    }
+
+    @Override
+    public MappingSet getMcpToObf() throws IOException {
+        MappingSet m2s = MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(mcpToSrg.get()));
+        return m2s.merge(MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(ObfToSrg.get())).reverse());
+    }
+    
     @TaskAction
     public void doTask() throws Exception {
         Project project = getProject();
@@ -44,4 +64,5 @@ public class UserRemapTask extends BaseRemappingTask {
             System.gc();
         }
     }
+    
 }
