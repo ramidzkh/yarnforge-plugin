@@ -47,8 +47,8 @@ dependencies {
     implementation("net.fabricmc", "stitch", "0.5.0+build.76")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.3.0+build.17")
     implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
-    implementation("org.cadixdev", "lorenz", "0.5.2")
-    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.174")
+    implementation("org.cadixdev", "lorenz", "0.5.3")
+    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.179")
 }
 
 java {

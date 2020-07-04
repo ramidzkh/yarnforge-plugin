@@ -17,11 +17,20 @@
 package me.ramidzkh.yarnforge;
 
 import net.minecraftforge.gradle.common.task.ExtractMCPData;
+import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
+import net.minecraftforge.gradle.common.util.McpNames;
+import net.minecraftforge.gradle.mcp.MCPRepo;
 import net.minecraftforge.gradle.mcp.task.GenerateSRG;
+import net.minecraftforge.gradle.userdev.UserDevExtension;
+import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.lorenz.io.MappingFormats;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 
 public class YarnForgePlugin implements Plugin<Project> {
 
@@ -36,14 +45,36 @@ public class YarnForgePlugin implements Plugin<Project> {
             ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
             target.getTasks().register("userRemapYarn", UserRemapTask.class, task -> {
                 task.dependsOn(extractData);
-                task.setSrgProvider(extractData::getOutput);
+                task.setNamesProvider(() -> {
+                    try (BufferedReader reader = Files.newBufferedReader(extractData.getOutput().toPath())) {
+                        MappingSet obf2Srg = MappingFormats.TSRG.createReader(reader).read();
+                        return MappingBridge.mergeMcpNames(obf2Srg, findNames(target, target.getExtensions().getByType(UserDevExtension.class).getMappings()));
+                    } catch (IOException exception) {
+                        throw new RuntimeException(exception);
+                    }
+                });
             });
         } else {
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
                 task.dependsOn(createMcp2Obf);
-                task.setSrgProvider(createMcp2Obf::getOutput);
+                task.setNamesProvider(() -> {
+                    try (BufferedReader reader = Files.newBufferedReader(createMcp2Obf.getOutput().toPath())) {
+                        return MappingFormats.TSRG.createReader(reader).read().reverse();
+                    } catch (IOException exception) {
+                        throw new RuntimeException(exception);
+                    }
+                });
             });
         }
+    }
+
+    private static McpNames findNames(Project project, String mapping) throws IOException {
+        int idx = mapping.lastIndexOf('_');
+        String channel = mapping.substring(0, idx);
+        String version = mapping.substring(idx + 1);
+        String desc = MCPRepo.getMappingDep(channel, version);
+
+        return McpNames.load(MavenArtifactDownloader.generate(project, desc, false));
     }
 }

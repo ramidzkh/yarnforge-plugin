@@ -18,12 +18,13 @@ package me.ramidzkh.yarnforge;
 
 import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
 import com.amadornes.artifactural.api.repository.ArtifactProvider;
+import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
-import net.minecraftforge.gradle.common.util.*;
-import net.minecraftforge.gradle.mcp.MCPRepo;
+import net.minecraftforge.gradle.common.util.Artifact;
+import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
@@ -41,11 +42,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Supplier;
 
-public class BaseRemappingTask extends DefaultTask {
+public abstract class BaseRemappingTask extends DefaultTask {
 
     private String version;
     private String mappings;
-    protected Supplier<File> srg;
+    private Supplier<MappingSet> namesProvider;
 
     @Option(description = "Minecraft version", option = "mc-version")
     public void setVersion(String version) {
@@ -57,45 +58,28 @@ public class BaseRemappingTask extends DefaultTask {
         this.mappings = mappings;
     }
 
-    public void setSrgProvider(Supplier<File> srg) {
-        this.srg = srg;
+    public void setNamesProvider(Supplier<MappingSet> namesProvider) {
+        this.namesProvider = namesProvider;
     }
 
     protected Mercury createRemapper() throws IOException {
         Mercury mercury = new Mercury();
         MappingSet mappings = createMcpToYarn();
-        mercury.getProcessors().add(MercuryRemapper.create(mappings, true));
+        mercury.getProcessors().add(MercuryRemapper.create(mappings, false));
+        mercury.getProcessors().add(new YarnForgeRewriter(mappings));
         return mercury;
     }
 
     private MappingSet createMcpToYarn() throws IOException {
         if (version == null || mappings == null) {
-            throw new GradleException("Missing --version and/or --mappings");
+            throw new GradleException("Missing --mc-version and/or --mappings");
         }
 
         Project project = getProject();
-        String names;
-
-        MinecraftExtension extension = project.getExtensions().findByType(MinecraftExtension.class);
-
-        if (extension != null) {
-            names = extension.getMappings();
-        } else {
-            names = project.project(":clean").getExtensions().findByType(MinecraftExtension.class).getMappings();
-        }
-
-        MappingSet obfToMcp = MappingBridge.mergeMcpNames(MappingBridge.loadMappingFile(MappingSet.create(), MappingFile.load(srg.get())), McpNames.load(findNames(names)));
-        MappingSet obfToYarn = MappingBridge.loadTiny(MappingSet.create(), loadTree(project, mappings), "official", "named");
-        return obfToYarn.reverse().merge(obfToMcp).reverse();
-    }
-
-    private File findNames(String mapping) {
-        int idx = mapping.lastIndexOf('_');
-        String channel = mapping.substring(0, idx);
-        String version = mapping.substring(idx + 1);
-        String desc = MCPRepo.getMappingDep(channel, version);
-
-        return MavenArtifactDownloader.generate(getProject(), desc, false);
+        MappingSet obfToYarn = MappingBridge.loadTiny(loadTree(project, mappings), "official", "named");
+        MappingSet obfToMcp = namesProvider.get();
+        obfToMcp.addFieldTypeProvider(MappingBridge.fromMappings(obfToYarn));
+        return MappingBridge.copy(obfToMcp).reverse().merge(obfToYarn);
     }
 
     public TinyTree loadTree(Project project, String mappings) throws IOException {

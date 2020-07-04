@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ForgeRemapTask extends BaseRemappingTask {
 
@@ -96,31 +95,30 @@ public class ForgeRemapTask extends BaseRemappingTask {
 
         {
             project.getLogger().lifecycle(":diffing");
-            try (Stream<Path> stream = Files.walk(mappedClean)) {
-                stream.filter(Files::isRegularFile)
-                        .forEach(c -> {
-                            Path file = mappedClean.relativize(c);
+            Files.walk(mappedClean)
+                    .filter(Files::isRegularFile)
+                    .forEach(c -> {
+                        Path file = mappedClean.relativize(c);
 
-                            try {
-                                String patch = makePatch(file.toString(), new String(Files.readAllBytes(c)), new String(Files.readAllBytes(mappedPatched.resolve(file))));
+                        try {
+                            String patch = makePatch(file.toString(), new String(Files.readAllBytes(c)), new String(Files.readAllBytes(mappedPatched.resolve(file))));
 
-                                if (patch != null) {
-                                    Path p = dir.resolve("remapped/patches").resolve(file + ".patch");
-                                    Files.createDirectories(p.getParent());
-                                    Files.write(p, patch.getBytes(), StandardOpenOption.CREATE);
-                                }
-                            } catch (IOException exception) {
-                                exception.printStackTrace();
+                            if (patch != null) {
+                                Path p = dir.resolve("remapped/patches").resolve(file + ".patch");
+                                Files.createDirectories(p.getParent());
+                                Files.write(p, patch.getBytes(), StandardOpenOption.CREATE);
                             }
-                        });
-            }
+                        } catch (IOException exception) {
+                            exception.printStackTrace();
+                        }
+                    });
 
         }
     }
 
     private static String makePatch(String relative, String a, String b) throws IOException {
-        String originalRelative = "a/" + relative;
-        String modifiedRelative = "b/" + relative;
+        String originalRelative = "a/" + relative.replace('\\', '/');
+        String modifiedRelative = "b/" + relative.replace('\\', '/');
         String originalData = a.replace("\r\n", "\n");
         String modifiedData = b.replace("\r\n", "\n");
         Diff diff = Diff.diff(new StringReader(originalData), new StringReader(modifiedData), false);
