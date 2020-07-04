@@ -25,6 +25,8 @@ import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.minecraftforge.gradle.common.util.*;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.mercury.Mercury;
+import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
@@ -59,7 +61,14 @@ public class BaseRemappingTask extends DefaultTask {
         this.srg = srg;
     }
 
-    protected MappingSet createMcpToYarn() throws IOException {
+    protected Mercury createRemapper() throws IOException {
+        Mercury mercury = new Mercury();
+        MappingSet mappings = createMcpToYarn();
+        mercury.getProcessors().add(MercuryRemapper.create(mappings, true));
+        return mercury;
+    }
+
+    private MappingSet createMcpToYarn() throws IOException {
         if (version == null || mappings == null) {
             throw new GradleException("Missing --version and/or --mappings");
         }

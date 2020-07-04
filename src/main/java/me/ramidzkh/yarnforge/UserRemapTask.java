@@ -17,7 +17,6 @@
 package me.ramidzkh.yarnforge;
 
 import org.cadixdev.mercury.Mercury;
-import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.TaskAction;
@@ -31,8 +30,7 @@ public class UserRemapTask extends BaseRemappingTask {
         Project project = getProject();
 
         try {
-            Mercury mercury = new Mercury();
-            mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn(), true));
+            Mercury mercury = createRemapper();
 
             for (File file : project.getConfigurations().getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).getFiles()) {
                 mercury.getClassPath().add(file.toPath());

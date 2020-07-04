@@ -18,7 +18,6 @@ package me.ramidzkh.yarnforge;
 
 import com.cloudbees.diff.Diff;
 import org.cadixdev.mercury.Mercury;
-import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.plugins.JavaPlugin;
@@ -60,8 +59,7 @@ public class ForgeRemapTask extends BaseRemappingTask {
         Path mappedClean = dir.resolve("remapped/clean");
         Path mappedPatched = dir.resolve("remapped/patched");
 
-        Mercury mercury = new Mercury();
-        mercury.getProcessors().add(MercuryRemapper.create(createMcpToYarn(), true));
+        Mercury mercury = createRemapper();
         mercury.getClassPath().addAll(compileClasspath);
 
         {
