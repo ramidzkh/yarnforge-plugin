@@ -16,6 +16,8 @@
 
 package me.ramidzkh.yarnforge;
 
+import me.ramidzkh.yarnforge.task.ForgeRemapTask;
+import me.ramidzkh.yarnforge.task.UserRemapTask;
 import net.minecraftforge.gradle.common.task.ExtractMCPData;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
 import net.minecraftforge.gradle.common.util.McpNames;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.ramidzkh.yarnforge;
+package me.ramidzkh.yarnforge.task;
 
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;

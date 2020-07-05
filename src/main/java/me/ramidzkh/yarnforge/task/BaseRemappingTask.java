@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package me.ramidzkh.yarnforge;
+package me.ramidzkh.yarnforge.task;
 
 import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
 import com.amadornes.artifactural.api.repository.ArtifactProvider;
+import me.ramidzkh.yarnforge.MappingBridge;
 import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -27,6 +28,8 @@ import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
+import org.cadixdev.mercury.mixin.MixinRemapper;
+import org.cadixdev.mercury.mixin.cleaner.MixinCleaner;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
@@ -46,6 +49,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
 
     private String version;
     private String mappings;
+    private boolean mixin;
     private Supplier<MappingSet> namesProvider;
 
     @Option(description = "Minecraft version", option = "mc-version")
@@ -58,6 +62,11 @@ public abstract class BaseRemappingTask extends DefaultTask {
         this.mappings = mappings;
     }
 
+    @Option(description = "Mixin support", option = "mixin")
+    public void setMixin(boolean mixin) {
+        this.mixin = mixin;
+    }
+
     public void setNamesProvider(Supplier<MappingSet> namesProvider) {
         this.namesProvider = namesProvider;
     }
@@ -65,6 +74,12 @@ public abstract class BaseRemappingTask extends DefaultTask {
     protected Mercury createRemapper() throws IOException {
         Mercury mercury = new Mercury();
         MappingSet mappings = createMcpToYarn();
+
+        if (mixin) {
+            mercury.getProcessors().add(MixinRemapper.create(mappings));
+            mercury.getProcessors().add(MixinCleaner.create());
+        }
+
         mercury.getProcessors().add(MercuryRemapper.create(mappings, false));
         mercury.getProcessors().add(new YarnForgeRewriter(mappings));
         return mercury;

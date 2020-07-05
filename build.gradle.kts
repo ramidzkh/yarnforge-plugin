@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "me.ramidzkh"
-version = "1.1.1-SNAPSHOT"
+version = "1.2.0-SNAPSHOT"
 
 repositories {
     jcenter()
@@ -47,8 +47,11 @@ dependencies {
     implementation("net.fabricmc", "stitch", "0.5.0+build.76")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.3.0+build.17")
     implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
+    implementation("org.cadixdev", "mercurymixin", "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "lorenz", "0.5.3")
     implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.179")
+    implementation("net.minecraftforge", "artifactural", "1.0.12")
+    implementation("com.cloudbees", "diff4j", "1.2")
 }
 
 java {

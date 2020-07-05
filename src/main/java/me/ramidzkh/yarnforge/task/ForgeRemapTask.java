@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.ramidzkh.yarnforge;
+package me.ramidzkh.yarnforge.task;
 
 import com.cloudbees.diff.Diff;
 import org.cadixdev.mercury.Mercury;

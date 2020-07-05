@@ -39,8 +39,8 @@ public class MappingBridge {
      * renames.
      *
      * @param tree The tree
-     * @param a Obfuscated namespace
-     * @param b De-obfuscated namespace
+     * @param a    Obfuscated namespace
+     * @param b    De-obfuscated namespace
      * @return A newly constructed obfuscation mapping
      */
     public static MappingSet loadTiny(TinyTree tree, String a, String b) {
@@ -81,7 +81,7 @@ public class MappingBridge {
      * Merges a {@link McpNames} to an obfuscation mapping. This does not clone the mappings so care should be taken
      *
      * @param mappings The mapping to process
-     * @param names The names to merge with
+     * @param names    The names to merge with
      * @return The same mappings
      */
     public static MappingSet mergeMcpNames(MappingSet mappings, McpNames names) {
@@ -100,6 +100,7 @@ public class MappingBridge {
 
     /**
      * Copies a mapping set, while using the computed field type
+     *
      * @param mappings The mapping set to copy
      * @return A newly constructed mapping set
      */
