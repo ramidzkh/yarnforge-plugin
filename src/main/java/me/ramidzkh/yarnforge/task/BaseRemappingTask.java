@@ -27,6 +27,7 @@ import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.lorenz.io.MappingFormats;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.mixin.MixinRemapper;
 import org.cadixdev.mercury.mixin.cleaner.MixinCleaner;
@@ -37,6 +38,7 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.options.Option;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -94,7 +96,14 @@ public abstract class BaseRemappingTask extends DefaultTask {
         MappingSet obfToYarn = MappingBridge.loadTiny(loadTree(project, mappings), "official", "named");
         MappingSet obfToMcp = namesProvider.get();
         obfToMcp.addFieldTypeProvider(MappingBridge.fromMappings(obfToYarn));
-        return MappingBridge.copy(obfToMcp).reverse().merge(obfToYarn);
+        obfToMcp = MappingBridge.copy(obfToMcp);
+        MappingSet mcpToYarn = obfToMcp.reverse().merge(obfToYarn);
+
+        debug("obfToYarn", obfToYarn);
+        debug("obfToMcp", obfToMcp);
+        debug("mcpToYarn", mcpToYarn);
+
+        return mcpToYarn;
     }
 
     public TinyTree loadTree(Project project, String mappings) throws IOException {
@@ -146,5 +155,14 @@ public abstract class BaseRemappingTask extends DefaultTask {
         };
 
         new CommandProposeFieldNames().run(proposeArgs);
+    }
+
+    private void debug(String name, MappingSet mappings) throws IOException {
+        Path path = getProject().file("remapped/" + name + ".xsrg").toPath();
+        Files.createDirectories(path.getParent());
+
+        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+            MappingFormats.XSRG.createWriter(writer).write(mappings);
+        }
     }
 }
