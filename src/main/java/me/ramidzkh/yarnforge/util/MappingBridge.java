@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package me.ramidzkh.yarnforge;
+package me.ramidzkh.yarnforge.util;
 
 import net.fabricmc.mapping.tree.*;
 import net.minecraftforge.gradle.common.util.McpNames;
-import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.*;
-import org.cadixdev.lorenz.model.jar.FieldTypeProvider;
 
 import java.util.function.Consumer;
 
@@ -54,7 +52,8 @@ public class MappingBridge {
 
             for (FieldDef field : classDef.getFields()) {
                 classMapping
-                        .getOrCreateFieldMapping(FieldSignature.of(field.getName(a), field.getDescriptor(a)))
+                        // .getOrCreateFieldMapping(FieldSignature.of(field.getName(a), field.getDescriptor(a)))
+                        .getOrCreateFieldMapping(field.getName(a)) // TODO: Fix this later...
                         .setDeobfuscatedName(field.getName(b))
                         .set(COMMENT, field.getComment());
             }
@@ -99,42 +98,6 @@ public class MappingBridge {
     }
 
     /**
-     * Copies a mapping set, while using the computed field type
-     *
-     * @param mappings The mapping set to copy
-     * @return A newly constructed mapping set
-     */
-    public static MappingSet copy(MappingSet mappings) {
-        MappingSet copy = MappingSet.create();
-
-        iterateClasses(mappings, classMapping -> {
-            ClassMapping<?, ?> classMappingCopy = copy
-                    .getOrCreateClassMapping(classMapping.getFullObfuscatedName())
-                    .setDeobfuscatedName(classMapping.getFullDeobfuscatedName());
-
-            for (FieldMapping fieldMapping : classMapping.getFieldMappings()) {
-                classMappingCopy
-                        .getOrCreateFieldMapping(new FieldSignature(fieldMapping.getObfuscatedName(), fieldMapping.getType().orElse(null)))
-                        .setDeobfuscatedName(fieldMapping.getDeobfuscatedName());
-            }
-
-            for (MethodMapping methodMapping : classMapping.getMethodMappings()) {
-                MethodMapping methodMappingCopy = classMappingCopy
-                        .getOrCreateMethodMapping(methodMapping.getSignature())
-                        .setDeobfuscatedName(methodMapping.getDeobfuscatedName());
-
-                for (MethodParameterMapping parameterMapping : methodMapping.getParameterMappings()) {
-                    methodMappingCopy
-                            .getOrCreateParameterMapping(parameterMapping.getIndex())
-                            .setDeobfuscatedName(parameterMapping.getDeobfuscatedName());
-                }
-            }
-        });
-
-        return copy;
-    }
-
-    /**
      * Iterates through all the {@link TopLevelClassMapping} and {@link InnerClassMapping} in a {@link MappingSet}
      *
      * @param mappings The mappings
@@ -152,18 +115,5 @@ public class MappingBridge {
         for (InnerClassMapping innerClassMapping : classMapping.getInnerClassMappings()) {
             iterateClass(innerClassMapping, consumer);
         }
-    }
-
-    /**
-     * Constructs a {@link FieldTypeProvider}, backed by the provided {@link MappingSet}'s obfuscated side
-     *
-     * @param mappings The mappings which back this provider
-     * @return A {@link FieldTypeProvider} which is backed by the provided mappings
-     */
-    public static FieldTypeProvider fromMappings(MappingSet mappings) {
-        return fieldMapping -> mappings
-                .getClassMapping(fieldMapping.getParent().getFullObfuscatedName())
-                .flatMap(classMapping -> classMapping.getFieldMapping(fieldMapping.getObfuscatedName()))
-                .flatMap(FieldMapping::getType);
     }
 }

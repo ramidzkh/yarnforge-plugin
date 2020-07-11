@@ -18,14 +18,22 @@ package me.ramidzkh.yarnforge.task;
 
 import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
 import com.amadornes.artifactural.api.repository.ArtifactProvider;
-import me.ramidzkh.yarnforge.MappingBridge;
 import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
+import me.ramidzkh.yarnforge.util.MappingBridge;
+import me.ramidzkh.yarnforge.util.Pair;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
+import org.cadixdev.bombe.analysis.CachingInheritanceProvider;
+import org.cadixdev.bombe.analysis.CascadingInheritanceProvider;
+import org.cadixdev.bombe.analysis.InheritanceProvider;
+import org.cadixdev.bombe.analysis.ReflectionInheritanceProvider;
+import org.cadixdev.bombe.asm.analysis.ClassProviderInheritanceProvider;
+import org.cadixdev.bombe.asm.jar.ClassProvider;
+import org.cadixdev.bombe.asm.jar.JarFileClassProvider;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.io.MappingFormats;
 import org.cadixdev.mercury.Mercury;
@@ -35,6 +43,7 @@ import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.tasks.options.Option;
 
 import java.io.BufferedReader;
@@ -45,7 +54,12 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.jar.JarFile;
 
 public abstract class BaseRemappingTask extends DefaultTask {
 
@@ -93,10 +107,45 @@ public abstract class BaseRemappingTask extends DefaultTask {
         }
 
         Project project = getProject();
-        MappingSet obfToYarn = MappingBridge.loadTiny(loadTree(project, mappings), "official", "named");
+        Pair<TinyTree, File> pair = loadTree(project, mappings);
+        MappingSet obfToYarn = MappingBridge.loadTiny(pair.left, "official", "named");
         MappingSet obfToMcp = namesProvider.get();
-        obfToMcp.addFieldTypeProvider(MappingBridge.fromMappings(obfToYarn));
-        obfToMcp = MappingBridge.copy(obfToMcp);
+
+        // TODO: Bullet-proof propagation
+        CascadingInheritanceProvider cascadingInheritanceProvider = new CascadingInheritanceProvider();
+
+        {
+            List<ClassProvider> providers = new ArrayList<>();
+
+            providers.add(new JarFileClassProvider(new JarFile(pair.right)));
+
+            // I did some testing, run this and again without this, and see the differences
+            // Between the mapping files. You need this
+            for (File dependency : getAllDependencies()) {
+                if (dependency.isFile()) {
+                    providers.add(new JarFileClassProvider(new JarFile(dependency)));
+                }
+            }
+
+            cascadingInheritanceProvider.install(new ClassProviderInheritanceProvider(klass -> {
+                for (ClassProvider provider : providers) {
+                    byte[] bytes = provider.get(klass);
+
+                    if (bytes != null) {
+                        return bytes;
+                    }
+                }
+
+                return null;
+            }));
+        }
+
+        cascadingInheritanceProvider.install(new ReflectionInheritanceProvider(ClassLoader.getSystemClassLoader())); // For JRE classes
+
+        InheritanceProvider inheritanceProvider = new CachingInheritanceProvider(cascadingInheritanceProvider);
+        MappingBridge.iterateClasses(obfToYarn, classMapping -> classMapping.complete(inheritanceProvider));
+        MappingBridge.iterateClasses(obfToMcp, classMapping -> classMapping.complete(inheritanceProvider));
+
         MappingSet mcpToYarn = obfToMcp.reverse().merge(obfToYarn);
 
         debug("obfToYarn", obfToYarn);
@@ -106,7 +155,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
         return mcpToYarn;
     }
 
-    public TinyTree loadTree(Project project, String mappings) throws IOException {
+    public Pair<TinyTree, File> loadTree(Project project, String mappings) throws IOException {
         try (FileSystem archive = FileSystems.newFileSystem(project.getConfigurations().detachedConfiguration(project.getDependencies().create(mappings)).getSingleFile().toPath(), null)) {
             Path copy = Files.createTempFile("mappings", ".tiny");
             Path output = Files.createTempFile("mappings", ".tiny");
@@ -116,10 +165,10 @@ public abstract class BaseRemappingTask extends DefaultTask {
 
             Files.copy(archive.getPath("mappings/mappings.tiny"), copy);
 
-            proposeFieldNames(MinecraftRepo.create(project), version, copy, output);
+            File merged = proposeFieldNames(MinecraftRepo.create(project), version, copy, output);
 
             try (BufferedReader reader = Files.newBufferedReader(output)) {
-                return TinyMappingFactory.loadWithDetection(reader);
+                return new Pair<>(TinyMappingFactory.loadWithDetection(reader), merged);
             } finally {
                 Files.deleteIfExists(copy);
                 Files.deleteIfExists(output);
@@ -131,7 +180,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
         }
     }
 
-    private static void proposeFieldNames(ArtifactProvider<ArtifactIdentifier> provider, String version, Path in, Path out) throws Exception {
+    private static File proposeFieldNames(ArtifactProvider<ArtifactIdentifier> provider, String version, Path in, Path out) throws Exception {
         File client = provider.getArtifact(Artifact.from("net.minecraft:client:" + version)).optionallyCache(null).asFile();
         File server = provider.getArtifact(Artifact.from("net.minecraft:server:" + version)).optionallyCache(null).asFile();
         File merged = File.createTempFile("merged", ".jar");
@@ -155,14 +204,29 @@ public abstract class BaseRemappingTask extends DefaultTask {
         };
 
         new CommandProposeFieldNames().run(proposeArgs);
+
+        return merged;
+    }
+
+    protected Set<File> getAllDependencies() {
+        Set<File> files = new HashSet<>();
+
+        for (Configuration configuration : getProject().getConfigurations()) {
+            try {
+                files.addAll(configuration.getFiles());
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return files;
     }
 
     private void debug(String name, MappingSet mappings) throws IOException {
-        Path path = getProject().file("remapped/" + name + ".xsrg").toPath();
+        Path path = getProject().file("remapped/" + name + ".srg").toPath();
         Files.createDirectories(path.getParent());
 
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            MappingFormats.XSRG.createWriter(writer).write(mappings);
+            MappingFormats.SRG.createWriter(writer).write(mappings);
         }
     }
 }
