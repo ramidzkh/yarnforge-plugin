@@ -16,7 +16,9 @@
 
 package me.ramidzkh.yarnforge;
 
+import me.ramidzkh.yarnforge.task.BaseRemappingTask;
 import me.ramidzkh.yarnforge.task.ForgeRemapTask;
+import me.ramidzkh.yarnforge.task.SpongeCommonRemapTask;
 import me.ramidzkh.yarnforge.task.UserRemapTask;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import net.minecraftforge.gradle.common.task.ExtractMCPData;
@@ -27,6 +29,7 @@ import net.minecraftforge.gradle.mcp.task.GenerateSRG;
 import net.minecraftforge.gradle.userdev.UserDevExtension;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.io.MappingFormats;
+import org.gradle.api.Action;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -46,7 +49,8 @@ public class YarnForgePlugin implements Plugin<Project> {
 
         if (target.getPluginManager().hasPlugin("net.minecraftforge.gradle")) {
             ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
-            target.getTasks().register("userRemapYarn", UserRemapTask.class, task -> {
+
+            Action<BaseRemappingTask> configurationAction = task -> {
                 task.dependsOn(extractData);
                 task.setNamesProvider(() -> {
                     try (BufferedReader reader = Files.newBufferedReader(extractData.getOutput().toPath())) {
@@ -56,7 +60,10 @@ public class YarnForgePlugin implements Plugin<Project> {
                         throw new RuntimeException(exception);
                     }
                 });
-            });
+            };
+
+            target.getTasks().register("userRemapYarn", UserRemapTask.class, configurationAction);
+            target.getTasks().register("spongeRemapYarn", SpongeCommonRemapTask.class, configurationAction);
         } else {
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
