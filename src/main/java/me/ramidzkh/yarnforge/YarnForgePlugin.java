@@ -16,10 +16,7 @@
 
 package me.ramidzkh.yarnforge;
 
-import me.ramidzkh.yarnforge.task.BaseRemappingTask;
-import me.ramidzkh.yarnforge.task.ForgeRemapTask;
-import me.ramidzkh.yarnforge.task.SpongeCommonRemapTask;
-import me.ramidzkh.yarnforge.task.UserRemapTask;
+import me.ramidzkh.yarnforge.task.*;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import net.minecraftforge.gradle.common.task.ExtractMCPData;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
@@ -48,9 +45,8 @@ public class YarnForgePlugin implements Plugin<Project> {
         });
 
         if (target.getPluginManager().hasPlugin("net.minecraftforge.gradle")) {
-            ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
-
             Action<BaseRemappingTask> configurationAction = task -> {
+                ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
                 task.dependsOn(extractData);
                 task.setNamesProvider(() -> {
                     try (BufferedReader reader = Files.newBufferedReader(extractData.getOutput().toPath())) {
@@ -64,6 +60,9 @@ public class YarnForgePlugin implements Plugin<Project> {
 
             target.getTasks().register("userRemapYarn", UserRemapTask.class, configurationAction);
             target.getTasks().register("spongeRemapYarn", SpongeCommonRemapTask.class, configurationAction);
+            // TODO: Make this the default
+            //  This should be used in UserRemapTask's place
+            target.getTasks().register("sourceSetRemapYarn", SourceSetRemapTask.class, configurationAction);
         } else {
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {
@@ -80,6 +79,12 @@ public class YarnForgePlugin implements Plugin<Project> {
     }
 
     private static McpNames findNames(Project project, String mapping) throws IOException {
+        // Looks like on old FG3 builds, the follow method doesn't exist
+        // I'll make it use a property variable
+        if (project.getProperties().containsKey("yarnforge.mcp")) {
+            return McpNames.load(MavenArtifactDownloader.generate(project, String.valueOf(project.getProperties().get("yarnforge.mcp")), false));
+        }
+
         int idx = mapping.lastIndexOf('_');
         String channel = mapping.substring(0, idx);
         String version = mapping.substring(idx + 1);

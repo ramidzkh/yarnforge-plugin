@@ -68,6 +68,10 @@ public abstract class BaseRemappingTask extends DefaultTask {
     private boolean mixin;
     private Supplier<MappingSet> namesProvider;
 
+    public BaseRemappingTask() {
+        setGroup("yarnforge");
+    }
+
     @Option(description = "Minecraft version", option = "mc-version")
     public void setVersion(String version) {
         this.version = version;
