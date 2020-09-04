@@ -18,10 +18,13 @@ package me.ramidzkh.yarnforge.util;
 
 import net.fabricmc.mapping.tree.*;
 import net.minecraftforge.gradle.common.util.McpNames;
+import org.cadixdev.bombe.type.BaseType;
+import org.cadixdev.bombe.type.FieldType;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.*;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -64,9 +67,11 @@ public class MappingBridge {
                         .setDeobfuscatedName(method.getName(b));
                 methodMapping.set(COMMENT, method.getComment());
 
+                List<FieldType> types = methodMapping.getDescriptor().getParamTypes();
+
                 for (ParameterDef parameter : method.getParameters()) {
                     methodMapping
-                            .getOrCreateParameterMapping(parameter.getLocalVariableIndex())
+                            .getOrCreateParameterMapping(normalizeIndex(types, parameter.getLocalVariableIndex()))
                             .setDeobfuscatedName(parameter.getName(b))
                             .set(COMMENT, parameter.getComment());
                 }
@@ -115,5 +120,25 @@ public class MappingBridge {
         for (InnerClassMapping innerClassMapping : classMapping.getInnerClassMappings()) {
             iterateClass(innerClassMapping, consumer);
         }
+    }
+
+    private static int normalizeIndex(List<FieldType> types, int index) {
+        int i = 0;
+
+        for (FieldType paramType : types) {
+            if (index == 0) {
+                break;
+            }
+
+            if (paramType == BaseType.LONG || paramType == BaseType.DOUBLE) {
+                index -= 2;
+            } else {
+                index--;
+            }
+
+            i++;
+        }
+
+        return i;
     }
 }
