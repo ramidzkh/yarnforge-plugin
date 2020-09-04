@@ -37,7 +37,11 @@ public class SourceSetRemapTask extends BaseRemappingTask {
             Mercury mercury = createRemapper();
 
             for (SourceSet sourceSet : sourceSets) {
-                ((DefaultTask) project.getTasks().getByName(sourceSet.getCompileJavaTaskName())).execute();
+                try {
+                    DefaultTask.class.getMethod("execute").invoke(project.getTasks().getByName(sourceSet.getCompileJavaTaskName()));
+                } catch (ReflectiveOperationException exception) {
+                    throw new RuntimeException("SourceSetRemapTask is not available", exception);
+                }
 
                 for (File file : sourceSet.getCompileClasspath().getFiles()) {
                     if (file.exists()) {

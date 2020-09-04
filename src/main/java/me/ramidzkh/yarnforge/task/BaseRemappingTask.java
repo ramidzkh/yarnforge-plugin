@@ -50,10 +50,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -160,7 +157,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
     }
 
     public Pair<TinyTree, File> loadTree(Project project, String mappings) throws IOException {
-        try (FileSystem archive = FileSystems.newFileSystem(project.getConfigurations().detachedConfiguration(project.getDependencies().create(mappings)).getSingleFile().toPath(), null)) {
+        try (FileSystem archive = FileSystems.newFileSystem(project.getConfigurations().detachedConfiguration(project.getDependencies().create(mappings)).getSingleFile().toPath(), (ClassLoader) null)) {
             Path copy = Files.createTempFile("mappings", ".tiny");
             Path output = Files.createTempFile("mappings", ".tiny");
 
