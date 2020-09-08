@@ -59,6 +59,7 @@ public class YarnForgePlugin implements Plugin<Project> {
             };
 
             target.getTasks().register("userRemapYarn", UserRemapTask.class, configurationAction);
+            target.getTasks().register("UserRemapTaskY2M", UserRemapTaskY2M.class, configurationAction);
             target.getTasks().register("spongeRemapYarn", SpongeCommonRemapTask.class, configurationAction);
             // TODO: Make this the default
             //  This should be used in UserRemapTask's place

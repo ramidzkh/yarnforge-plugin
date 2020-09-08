@@ -88,9 +88,13 @@ public abstract class BaseRemappingTask extends DefaultTask {
         this.namesProvider = namesProvider;
     }
 
-    protected Mercury createRemapper() throws IOException {
+    protected Mercury createRemapper(boolean yarn2mcp) throws IOException {
         Mercury mercury = new Mercury();
         MappingSet mappings = createMcpToYarn();
+        
+        if (yarn2mcp) {
+            mappings = mappings.reverse();
+        }
 
         if (mixin) {
             mercury.getProcessors().add(MixinRemapper.create(mappings));
@@ -100,6 +104,10 @@ public abstract class BaseRemappingTask extends DefaultTask {
         mercury.getProcessors().add(MercuryRemapper.create(mappings, false));
         mercury.getProcessors().add(new YarnForgeRewriter(mappings));
         return mercury;
+    }
+
+    protected Mercury createRemapper() throws IOException {
+        return createRemapper(false);
     }
 
     private MappingSet createMcpToYarn() throws IOException {
