@@ -70,10 +70,10 @@ public class MappingBridge {
                 List<FieldType> types = methodMapping.getDescriptor().getParamTypes();
 
                 for (ParameterDef parameter : method.getParameters()) {
-                    methodMapping
-                            .getOrCreateParameterMapping(normalizeIndex(types, parameter.getLocalVariableIndex()))
-                            .setDeobfuscatedName(parameter.getName(b))
-                            .set(COMMENT, parameter.getComment());
+                    // methodMapping
+                    //         .getOrCreateParameterMapping(normalizeIndex(types, parameter.getLocalVariableIndex()))
+                    //         .setDeobfuscatedName(parameter.getName(b))
+                    //         .set(COMMENT, parameter.getComment());
                 }
             }
         }

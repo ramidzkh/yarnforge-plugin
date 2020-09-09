@@ -21,6 +21,7 @@ import com.amadornes.artifactural.api.repository.ArtifactProvider;
 import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import me.ramidzkh.yarnforge.util.Pair;
+import me.ramidzkh.yarnforge.util.TinyV2BiNamespaceMappingsWriter;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
@@ -63,6 +64,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
     private String version;
     private String mappings;
     private boolean mixin;
+    private boolean debugMappings;
     private Supplier<MappingSet> namesProvider;
 
     public BaseRemappingTask() {
@@ -82,6 +84,11 @@ public abstract class BaseRemappingTask extends DefaultTask {
     @Option(description = "Mixin support", option = "mixin")
     public void setMixin(boolean mixin) {
         this.mixin = mixin;
+    }
+
+    @Option(description = "Export a variety of mappings. Does not remap", option = "debugMappings")
+    public void setDebugMappings(boolean debugMappings) {
+        this.debugMappings = debugMappings;
     }
 
     public void setNamesProvider(Supplier<MappingSet> namesProvider) {
@@ -149,9 +156,13 @@ public abstract class BaseRemappingTask extends DefaultTask {
 
         MappingSet mcpToYarn = obfToMcp.reverse().merge(obfToYarn);
 
-        debug("obfToYarn", obfToYarn);
-        debug("obfToMcp", obfToMcp);
-        debug("mcpToYarn", mcpToYarn);
+        debug("obf", "yarn", obfToYarn);
+        debug("obf", "mcp", obfToMcp);
+        debug("mcp", "yarn", mcpToYarn);
+
+        if (debugMappings) {
+            throw new RuntimeException("Killing remapping, maybe not so gracefully");
+        }
 
         return mcpToYarn;
     }
@@ -222,12 +233,40 @@ public abstract class BaseRemappingTask extends DefaultTask {
         return files;
     }
 
-    private void debug(String name, MappingSet mappings) throws IOException {
-        Path path = getProject().file("remapped/" + name + ".srg").toPath();
-        Files.createDirectories(path.getParent());
+    private void debug(String a, String b, MappingSet mappings) throws IOException {
+        if (debugMappings) {
+            Path path = getProject().file("remapped/" + a + "To" + capitaliseFirstCharacter(b) + ".srg").toPath();
+            Files.createDirectories(path.getParent());
 
-        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            MappingFormats.SRG.createWriter(writer).write(mappings);
+            try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+                MappingFormats.SRG.createWriter(writer).write(mappings);
+            }
+        } else {
+            {
+                Path aToB = getProject().file("remapped/" + a + "To" + capitaliseFirstCharacter(b) + ".tiny").toPath();
+                Files.createDirectories(aToB.getParent());
+
+                try (BufferedWriter writer = Files.newBufferedWriter(aToB)) {
+                    new TinyV2BiNamespaceMappingsWriter(writer, a, b).write(mappings);
+                }
+            }
+
+            {
+                Path bToA = getProject().file("remapped/" + b + "To" + capitaliseFirstCharacter(a) + ".tiny").toPath();
+                Files.createDirectories(bToA.getParent());
+
+                try (BufferedWriter writer = Files.newBufferedWriter(bToA)) {
+                    new TinyV2BiNamespaceMappingsWriter(writer, b, a).write(mappings.reverse());
+                }
+            }
+        }
+    }
+
+    private static String capitaliseFirstCharacter(String s) {
+        if (s.length() > 0) {
+            return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+        } else {
+            return s;
         }
     }
 }
