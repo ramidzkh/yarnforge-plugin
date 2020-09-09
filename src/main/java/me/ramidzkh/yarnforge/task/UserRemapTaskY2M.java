@@ -21,6 +21,8 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.util.Properties;
 
 public class UserRemapTaskY2M extends BaseRemappingTask {
     @TaskAction
@@ -28,6 +30,11 @@ public class UserRemapTaskY2M extends BaseRemappingTask {
         Project project = getProject();
 
         try {
+        	Properties fabricProp = new Properties();
+        	fabricProp.load(new FileInputStream(project.file("../gradle.properties")));
+        	this.setVersion(fabricProp.getProperty("minecraft_version").toString());
+        	this.setMappings("net.fabricmc:yarn:" + fabricProp.getProperty("yarn_mappings"));
+
             Mercury mercury = createRemapper(true);
 
             for (File file : getAllDependencies()) {
@@ -39,13 +46,17 @@ public class UserRemapTaskY2M extends BaseRemappingTask {
             }
 
             // Add the Yarn-mapped vanilla jar, copied from Fabric-loom
-            File libsDir = project.file("libs");
-            for (File file: libsDir.listFiles()) {
-            	mercury.getClassPath().add(file.toPath());
+            File libsDir = project.file("remapper_libs");
+            if (libsDir.exists()) {
+                for (File file: libsDir.listFiles()) {
+                	mercury.getClassPath().add(file.toPath());
+                }
             }
 
             project.getLogger().lifecycle(":remapping");
-            mercury.rewrite(project.file("src_yarn/main/java").toPath(), project.file("remapped").toPath());
+            File outputDir = project.file("src_remapped/main/java");
+            outputDir.mkdirs();
+            mercury.rewrite(project.file("../src/main/java").toPath(), outputDir.toPath());
         } finally {
             System.gc();
         }

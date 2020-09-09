@@ -17,13 +17,24 @@
 package me.ramidzkh.yarnforge.util;
 
 import net.fabricmc.mapping.tree.*;
+import net.fabricmc.stitch.commands.tinyv2.TinyClass;
+import net.fabricmc.stitch.commands.tinyv2.TinyField;
+import net.fabricmc.stitch.commands.tinyv2.TinyFile;
+import net.fabricmc.stitch.commands.tinyv2.TinyHeader;
+import net.fabricmc.stitch.commands.tinyv2.TinyMethod;
+import net.fabricmc.stitch.commands.tinyv2.TinyMethodParameter;
 import net.minecraftforge.gradle.common.util.McpNames;
 import org.cadixdev.bombe.type.BaseType;
 import org.cadixdev.bombe.type.FieldType;
+import org.cadixdev.bombe.type.signature.FieldSignature;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.*;
 
+import com.google.common.collect.Lists;
+
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -34,6 +45,102 @@ public class MappingBridge {
 
     public static final ExtensionKey<String> COMMENT = new ExtensionKey<>(String.class, "comment");
 
+    /**
+     * 
+     * @param tree the yarn mapping, format: official	intermediary(Yarn)	named(Yarn)
+     * @param mapping obf-to-MCP mapping, format: mapping named(Yarn)	named(MCP)
+     * @return
+     */
+    public static TinyFile saveTiny(TinyTree tree, MappingSet mapping) {
+    	List<TinyClass> classes = new LinkedList<>();
+    	TinyHeader header = new TinyHeader(Lists.newArrayList("official", "intermediary", "named"), 2, 0, new HashMap<String,String>());
+    	TinyFile tinyFile = new TinyFile(header, classes);
+  
+    	for (ClassDef classDef : tree.getClasses()) {
+    		String officialClsName = classDef.getName("official");
+    		String yarnInterMClsName = classDef.getName("intermediary");
+    		String yarnDeobfClsName = classDef.getName("named");
+    		String MCPDeobfClsName = String.valueOf(yarnDeobfClsName);
+
+    		ClassMapping<?, ?> classMapping = mapping.computeClassMapping(officialClsName).orElse(null);
+    		if (classMapping != null) {
+    			MCPDeobfClsName = classMapping.getDeobfuscatedName();
+    		}
+   
+    		List<TinyMethod> methods = new LinkedList<>();
+    		List<TinyField> fields = new LinkedList<>();
+    		TinyClass classToWrite = new TinyClass(Lists.newArrayList(officialClsName, yarnInterMClsName, MCPDeobfClsName), methods, fields, new LinkedList<>());
+    		classes.add(classToWrite);
+ 
+    		for (FieldDef fieldDef : classDef.getFields()) {
+        		String officialFldName = fieldDef.getName("official");
+        		String officialFldDesc = fieldDef.getDescriptor("official");
+        		String yarnInterMFldName = fieldDef.getName("intermediary");
+        		String yarnDeobfFldName = fieldDef.getName("named");
+        		String MCPDeobfFldName = String.valueOf(yarnDeobfFldName);
+
+        		if (classMapping != null) {
+	        		FieldMapping fieldMapping = classMapping.computeFieldMapping(FieldSignature.of(officialFldName, officialFldDesc)).orElse(null);
+	        		if (fieldMapping != null) {
+	        			MCPDeobfFldName = fieldMapping.getDeobfuscatedName();
+	        		}
+        		}
+
+        		TinyField fieldToWrite = new TinyField(officialFldDesc, 
+        				Lists.newArrayList(officialFldName, yarnInterMFldName, MCPDeobfFldName), 
+        				new LinkedList<>());
+        		classToWrite.getFields().add(fieldToWrite);
+            }
+
+    		for (MethodDef methodDef: classDef.getMethods()) {
+        		String officialMtdName = methodDef.getName("official");
+        		String officialMtdDesc = methodDef.getDescriptor("official");
+        		String yarnInterMMtdName = methodDef.getName("intermediary");
+        		String yarnDeobfMtdName = methodDef.getName("named");
+        		String MCPDeobfMtdName = String.valueOf(yarnDeobfMtdName);
+
+        		MethodMapping methodMapping = null;
+        		if (classMapping != null) {
+        			methodMapping = classMapping.getMethodMapping(officialMtdName, officialMtdDesc).orElse(null);
+        			if (methodMapping != null) {
+        				MCPDeobfMtdName = methodMapping.getDeobfuscatedName();
+        			}
+        		}
+
+        		List<TinyMethodParameter> parameters = new LinkedList<TinyMethodParameter>();
+        		TinyMethod methodToWrite = new TinyMethod(officialMtdDesc,
+        				Lists.newArrayList(officialMtdName, yarnInterMMtdName, MCPDeobfMtdName),
+        				parameters,
+        				new LinkedList<>(),	// Local Vars
+        				new LinkedList<>()	// Comments
+        				);
+        		classToWrite.getMethods().add(methodToWrite);
+
+        		for (ParameterDef paramDef: methodDef.getParameters()) {
+        			int paramIndex = paramDef.getLocalVariableIndex();
+            		String officialParamName = paramDef.getName("official");
+            		String yarnInterMParamName = paramDef.getName("intermediary");
+            		String yarnDeobfParamName = paramDef.getName("named");
+            		String MCPDeobfParamName = String.valueOf(yarnDeobfParamName);
+            		
+            		if (methodMapping != null) {
+            			MethodParameterMapping paramMapping = methodMapping.getParameterMapping(paramIndex).orElse(null);
+            			if (paramMapping != null) {
+            				MCPDeobfParamName = paramMapping.getDeobfuscatedName();
+            			}
+            		}
+ 
+            		parameters.add(new TinyMethodParameter(paramIndex,
+            				Lists.newArrayList(officialParamName, yarnInterMParamName, MCPDeobfParamName),
+            				new LinkedList<>()	// Comments
+            				));
+        		}
+    		}
+    	}
+   
+    	return tinyFile;
+    }
+    
     /**
      * Loads a {@link TinyTree} to a new {@link MappingSet}, from the <code>a</code> namespace to the <code>b</code>
      * namespace. Writes comments to the {@link #COMMENT} extension key when possible. Does not support local variable
