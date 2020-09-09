@@ -25,6 +25,7 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
+import net.fabricmc.stitch.commands.tinyv2.TinyV2Writer;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.bombe.analysis.CachingInheritanceProvider;
@@ -152,6 +153,8 @@ public abstract class BaseRemappingTask extends DefaultTask {
         debug("obfToYarn", obfToYarn);
         debug("obfToMcp", obfToMcp);
         debug("mcpToYarn", mcpToYarn);
+
+        TinyV2Writer.write(MappingBridge.saveTiny(pair.left, obfToMcp), getProject().file("remapped/obf2mcp.tiny").toPath());
 
         return mcpToYarn;
     }
