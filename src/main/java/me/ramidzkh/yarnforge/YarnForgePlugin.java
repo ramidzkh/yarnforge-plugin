@@ -63,6 +63,20 @@ public class YarnForgePlugin implements Plugin<Project> {
             // TODO: Make this the default
             //  This should be used in UserRemapTask's place
             target.getTasks().register("sourceSetRemapYarn", SourceSetRemapTask.class, configurationAction);
+            Action<MigrateMappingsTask> migrateMappingsTaskAction = task -> {
+                ExtractMCPData extractData = (ExtractMCPData) target.getTasks().getByName("extractSrg");
+                task.dependsOn(extractData);
+                task.setNamesProvider(() -> {
+                    try (BufferedReader reader = Files.newBufferedReader(extractData.getOutput().toPath())) {
+                        MappingSet obf2Srg = MappingFormats.TSRG.createReader(reader).read();
+                        return MappingBridge.mergeMcpNames(obf2Srg, findNames(target, target.getExtensions().getByType(UserDevExtension.class).getMappings()));
+                    } catch (IOException exception) {
+                        throw new RuntimeException(exception);
+                    }
+                });
+            };
+
+            target.getTasks().register("userMigrateMappings", MigrateMappingsTask.class, migrateMappingsTaskAction);
         } else {
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {

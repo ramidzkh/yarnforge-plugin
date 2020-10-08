@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "me.ramidzkh"
-version = "1.3.0-SNAPSHOT"
+version = "1.3.0-LOCAL-SNAPSHOT"
 
 repositories {
     jcenter()
@@ -53,6 +53,10 @@ dependencies {
     implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.179")
     implementation("net.minecraftforge", "artifactural", "1.0.12")
     implementation("com.cloudbees", "diff4j", "1.2")
+    implementation("com.google.code.gson", "gson", "2.8.6")
+    implementation("org.dom4j", "dom4j", "2.1.3")
+    // dom4j has a slightly broken pom, i guess
+    implementation("jaxen:jaxen:1.1.6")
 }
 
 java {
