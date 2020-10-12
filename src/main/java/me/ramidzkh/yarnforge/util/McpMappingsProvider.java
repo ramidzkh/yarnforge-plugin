@@ -5,22 +5,16 @@ import org.cadixdev.lorenz.io.MappingFormats;
 import org.cadixdev.lorenz.model.*;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Shamelessly lifted from Alef, by phase.
@@ -29,34 +23,33 @@ import java.util.zip.ZipInputStream;
  * https://github.com/phase/alef/tree/853a9787d077f767dab7fc4938b95a750d618885
  */
 public class McpMappingsProvider {
-    public static final String SNAPSHOT_URL = "http://export.mcpbot.bspk.rs/mcp_snapshot_nodoc/%s/mcp_snapshot_nodoc-%s.zip";
+    public static final String SNAPSHOT_URL = "https://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_snapshot/{}/mcp_snapshot-{}.zip";
 
     public String getMcpVersion(String version) {
-        if(version.equals("1.15.2") || version.equals("1.15.1")) {
+        if (version.equals("1.15.2") || version.equals("1.15.1")) {
             return "20201007-1.15.1";
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("No MCP version cached for " + version);
         }
     }
 
-    public void downloadSnapshotCsvs(File destinationDir, String mcpVersion) throws IOException {
-        destinationDir.mkdirs();
-        URL url = new URL(SNAPSHOT_URL.replaceAll("%s", mcpVersion));
-        ZipInputStream inputStream = new ZipInputStream(url.openStream());
-        ZipEntry entry = inputStream.getNextEntry();
-        while (entry != null) {
-            if (entry.getName().equals("fields.csv") || entry.getName().equals("methods.csv")) {
-                copyToFile(inputStream, new File(destinationDir, entry.getName()));
+    public void downloadSnapshotCsvs(Path destinationDir, String mcpVersion) throws IOException {
+        try {
+            Files.createDirectories(destinationDir);
+            URI uri = new URI("jar:" + SNAPSHOT_URL.replace("{}", mcpVersion));
+
+            try (FileSystem fs = FileSystems.getFileSystem(uri)) {
+                Files.copy(fs.getPath("fields.csv"), destinationDir.resolve("fields.csv"));
+                Files.copy(fs.getPath("methods.csv"), destinationDir.resolve("methods.csv"));
             }
-            entry = inputStream.getNextEntry();
+        } catch (URISyntaxException ex) {
+            throw new IOException(ex);
         }
-        inputStream.close();
     }
 
-    public Map<String, String> parseCsv(File csv) throws IOException {
+    public Map<String, String> parseCsv(Path csv) throws IOException {
         HashMap<String, String> mappings = new HashMap<>();
-        List<String> lines = Files.readAllLines(csv.toPath());
+        List<String> lines = Files.readAllLines(csv);
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.trim().isEmpty()) continue;
@@ -72,18 +65,18 @@ public class McpMappingsProvider {
 
     public MappingSet getModernMappings(String minecraftVersion, String mcpVersion) throws IOException {
         Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "yarnforge-plugin-");
-        File versionDir = new File(tempDir.toFile(), minecraftVersion);
-        File mcpFile = new File(versionDir, "mcp.tsrg");
+        Path versionDir = tempDir.resolve(minecraftVersion);
+        Path mcpFile = tempDir.resolve("mcp.tsrg");
         downloadSnapshotCsvs(versionDir, mcpVersion);
-        Map<String, String> mcpFields = parseCsv(new File(versionDir, "fields.csv"));
-        Map<String, String> mcpMethods = parseCsv(new File(versionDir, "methods.csv"));
+        Map<String, String> mcpFields = parseCsv(tempDir.resolve("fields.csv"));
+        Map<String, String> mcpMethods = parseCsv(tempDir.resolve("methods.csv"));
         MappingSet srgMappings = SrgMappingsProvider.provideSrg(minecraftVersion);
 
         for (TopLevelClassMapping classMapping : srgMappings.getTopLevelClassMappings()) {
             replaceSrgNames(mcpFields, mcpMethods, classMapping);
         }
 
-        MappingFormats.TSRG.write(srgMappings, mcpFile.toPath());
+        MappingFormats.TSRG.write(srgMappings, mcpFile);
         return srgMappings;
     }
 
@@ -103,15 +96,5 @@ public class McpMappingsProvider {
         for (InnerClassMapping innerClassMapping : classMapping.getInnerClassMappings()) {
             replaceSrgNames(mcpFields, mcpMethods, innerClassMapping);
         }
-    }
-
-    private static void copyToFile(InputStream inputStream, File file) throws IOException {
-        ReadableByteChannel readChannel = Channels.newChannel(inputStream);
-        FileOutputStream output = new FileOutputStream(file);
-        FileChannel writeChannel = output.getChannel();
-        writeChannel.transferFrom(readChannel, 0, Long.MAX_VALUE);
-        writeChannel.force(false);
-        writeChannel.close();
-        output.close();
     }
 }

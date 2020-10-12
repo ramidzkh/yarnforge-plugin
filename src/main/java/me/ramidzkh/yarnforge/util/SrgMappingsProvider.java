@@ -26,7 +26,6 @@ import org.dom4j.io.SAXReader;
  * Lifted from Patchwork Patcher with permission
  */
 public class SrgMappingsProvider {
-
     public static MappingSet provideSrg(String minecraftVersion) {
         try {
             Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "yarnforge-plugin-");
