@@ -17,6 +17,7 @@
 package me.ramidzkh.yarnforge.task;
 
 import com.cloudbees.diff.Diff;
+import org.apache.commons.io.FileUtils;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.ConfigurationContainer;
@@ -73,9 +74,21 @@ public class ForgeRemapTask extends BaseRemappingTask {
                 project.getLogger().lifecycle(":remapping test");
                 mercury.getClassPath().add(main);
                 mercury.getClassPath().addAll(testCompileClasspath);
-                mercury.rewrite(test, dir.resolve("remapped/test"));
-                mercury.getClassPath().remove(main);
-                mercury.getClassPath().removeAll(testCompileClasspath);
+
+                try {
+	                mercury.rewrite(test, dir.resolve("remapped/test"));
+                } catch (RuntimeException ex) {
+                	project.getLogger().lifecycle("failed to remap test!");
+                	try {
+		                FileUtils.deleteDirectory(dir.resolve("remapped/test").toFile());
+	                } catch (IOException ignored) {
+                		//
+	                }
+
+                }
+
+	            mercury.getClassPath().remove(main);
+	            mercury.getClassPath().removeAll(testCompileClasspath);
             }
 
             mercury.getClassPath().remove(patched);
