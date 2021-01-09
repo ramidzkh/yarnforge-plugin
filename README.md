@@ -19,7 +19,7 @@ classpath("me.ramidzkh:yarnforge-plugin:<version>")
 
 ## Usage for user mods
 `userRemapYarn --mappings net.fabricmc:yarn:<yarn version> --mc-version <mc version> --no-daemon`
-* Add `--mixin true` for Mixin support
+* Add `--mixin` for Mixin support
 * Make sure at least 1GB of RAM has been assigned to gradle. This should have been done by default already.
 * `--no-daemon` is ***extremely important*** or gradle will leak memory until you run `daemon --stop`!
 
