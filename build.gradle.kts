@@ -23,8 +23,22 @@ plugins {
 group = "me.ramidzkh"
 version = "1.3.0-SNAPSHOT"
 
+object Config {
+    // If you are having issues with single files failing to remap but you wish to ignore those, you can set this to
+    // true. You must also add https://maven.shedaniel.me/ to the buildscript repositories of the project which applies
+    // this plugin
+    const val ignoreConflicts = false
+}
+
 repositories {
     jcenter()
+
+    if (Config.ignoreConflicts) {
+        maven {
+            name = "Shedaniel"
+            url = uri("https://maven.shedaniel.me/")
+        }
+    }
 
     maven {
         name = "Sonatype"
@@ -46,7 +60,7 @@ dependencies {
     implementation("com.google.guava", "guava", "29.0-jre")
     implementation("net.fabricmc", "stitch", "0.5.0+build.76")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.3.0+build.17")
-    implementation("org.cadixdev", "mercury", "0.1.0-SNAPSHOT")
+    implementation("org.cadixdev", "mercury", if (Config.ignoreConflicts) "0.2.8" else "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "mercurymixin", "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "lorenz", "0.5.3")
     implementation("org.cadixdev", "lorenz-asm", "0.5.3")
