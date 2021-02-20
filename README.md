@@ -4,18 +4,18 @@ A Forge specific Gradle plugin to remap its sources to Yarn
 **Note:** Although the following says Yarn, you can use anything as long as it is usable by fabric-loom
 
 ## Setup
-* Clone this repo
-* In this repo copy/clone your target project
-* In the target's settings.gradle add `includeBuild("..")`
-* In the target's build.gradle add the following repositories to the buildscript
-  - https://oss.sonatype.org/content/groups/public/
-  - https://maven.fabricmc.net/
-* In the target's build.gradle add the following to the buildscript dependencies
+1. Clone this repo
+2. In this repo copy/clone your target project
+3. In the target's settings.gradle add `includeBuild("..")`
+4. In the target's build.gradle add the following repositories to the buildscript block
+   - https://oss.sonatype.org/content/groups/public/
+   - https://maven.fabricmc.net/
+5. In the target's build.gradle add the following to the buildscript dependencies
 ```
-classpath("me.ramidzkh:yarnforge-plugin:<version>")
+classpath("me.ramidzkh:yarnforge-plugin")
 ```
 (The version can be found in the build.gradle.kts)
-* Apply the `yarnforge-plugin` plugin
+6. Apply the `yarnforge-plugin` plugin **after** Forge's plugin is applied
 
 ## Usage for user mods
 `userRemapYarn --mappings net.fabricmc:yarn:<yarn version> --mc-version <mc version> --no-daemon`
@@ -23,7 +23,7 @@ classpath("me.ramidzkh:yarnforge-plugin:<version>")
 * Make sure at least 1GB of RAM has been assigned to gradle. This should have been done by default already.
 * `--no-daemon` is ***extremely important*** or gradle will leak memory until you run `daemon --stop`!
 
-## Usage for Forge
+## Usage for Forge itself (like https://github.com/MinecraftForge/MinecraftForge)
 `clean setup setupMCP createMcp2Obf`
 
 `forgeRemapYarn --mappings net.fabricmc:yarn:<yarn version>  --mc-version <mc version> --no-daemon`
