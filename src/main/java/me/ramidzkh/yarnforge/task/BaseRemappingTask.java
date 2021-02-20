@@ -104,7 +104,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
             mercury.getProcessors().add(MixinCleaner.create());
         }
 
-        mercury.getProcessors().add(MercuryRemapper.create(mappings, false));
+        mercury.getProcessors().add(MercuryRemapper.create(mappings));
         mercury.getProcessors().add(new YarnForgeRewriter(mappings));
         return mercury;
     }
