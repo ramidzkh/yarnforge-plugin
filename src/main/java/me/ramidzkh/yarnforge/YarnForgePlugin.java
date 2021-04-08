@@ -81,12 +81,6 @@ public class YarnForgePlugin implements Plugin<Project> {
     }
 
     private static McpNames findNames(Project project, String mapping) throws IOException {
-        // Looks like on old FG3 builds, the follow method doesn't exist
-        // I'll make it use a property variable
-        if (project.getProperties().containsKey("yarnforge.mcp")) {
-            return McpNames.load(MavenArtifactDownloader.generate(project, String.valueOf(project.getProperties().get("yarnforge.mcp")), false));
-        }
-
         int idx = mapping.lastIndexOf('_');
         String channel = mapping.substring(0, idx);
         String version = mapping.substring(idx + 1);

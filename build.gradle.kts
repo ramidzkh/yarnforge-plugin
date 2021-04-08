@@ -64,7 +64,8 @@ dependencies {
     implementation("org.cadixdev", "mercurymixin", "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "lorenz", "0.5.3")
     implementation("org.cadixdev", "lorenz-asm", "0.5.3")
-    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.179")
+    implementation("net.minecraftforge.gradle", "ForgeGradle", "4.0.1")
+    implementation("net.minecraftforge", "artifactural", "2.0.3")
     implementation("net.minecraftforge", "artifactural", "1.0.12")
     implementation("com.cloudbees", "diff4j", "1.2")
 }

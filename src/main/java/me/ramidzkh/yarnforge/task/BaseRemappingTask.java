@@ -16,8 +16,6 @@
 
 package me.ramidzkh.yarnforge.task;
 
-import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
-import com.amadornes.artifactural.api.repository.ArtifactProvider;
 import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import me.ramidzkh.yarnforge.util.Pair;
@@ -26,6 +24,8 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
+import net.minecraftforge.artifactural.api.artifact.ArtifactIdentifier;
+import net.minecraftforge.artifactural.api.repository.ArtifactProvider;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.bombe.analysis.CachingInheritanceProvider;
