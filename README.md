@@ -30,6 +30,7 @@ Although the following says Yarn, you can use anything but Mojang mappings as lo
 ## Usage for Forge itself (as in https://github.com/MinecraftForge/MinecraftForge)
 `./gradlew --include-build <location to where you cloned yarnforge> clean setup forgeRemapYarn --mappings net.fabricmc:yarn:<yarn version> --mc-version <mc version> --no-daemon`
 * Assign at least 3GB of RAM to Gradle. If you're starved for RAM, 2GB will usually work but will be slightly slower.
+* Add `--skip-clean` to skip remapping the clean source set
 * `--no-daemon` is ***extremely important*** or gradle will leak over a gig of memory until you run `daemon --stop`!
 * The `remapped/clean` and `remapped/patched` directories contain Minecraft code, so be careful of publishing those
 

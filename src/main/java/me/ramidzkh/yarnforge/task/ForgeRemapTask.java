@@ -42,7 +42,7 @@ public class ForgeRemapTask extends BaseRemappingTask {
         setDescription("(Forge specific) Remap sources and patches");
     }
 
-    @Option(description = "Skip mapping the clean project", option = "skipClean")
+    @Option(description = "Skip mapping the clean project", option = "skip-clean")
     public void setSkipClean(boolean skip) {
         this.skipClean = skip;
     }
