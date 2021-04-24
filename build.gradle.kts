@@ -57,16 +57,16 @@ repositories {
 }
 
 dependencies {
-    implementation("com.google.guava", "guava", "29.0-jre")
-    implementation("net.fabricmc", "stitch", "0.5.0+build.76")
+    implementation("com.google.guava", "guava", "30.1-jre")
+    implementation("net.fabricmc", "stitch", "0.5.1+build.77")
     implementation("net.fabricmc", "tiny-mappings-parser", "0.3.0+build.17")
     implementation("org.cadixdev", "mercury", if (Config.ignoreConflicts) "0.2.8" else "0.1.0-SNAPSHOT")
     implementation("org.cadixdev", "mercurymixin", "0.1.0-SNAPSHOT")
-    implementation("org.cadixdev", "lorenz", "0.5.3")
-    implementation("org.cadixdev", "lorenz-asm", "0.5.3")
-    implementation("net.minecraftforge.gradle", "ForgeGradle", "3.0.179")
-    implementation("net.minecraftforge", "artifactural", "1.0.12")
-    implementation("com.cloudbees", "diff4j", "1.2")
+    implementation("org.cadixdev", "lorenz", "0.5.7")
+    implementation("org.cadixdev", "lorenz-asm", "0.5.7")
+    implementation("net.minecraftforge.gradle", "ForgeGradle", "4.1.7")
+    implementation("net.minecraftforge", "artifactural", "2.0.3")
+    implementation("net.minecraftforge", "DiffPatch", "2.0.5")
 }
 
 java {
@@ -81,7 +81,7 @@ tasks.withType<Wrapper> {
 
 gradlePlugin {
     plugins {
-        create("remapper") {
+        create("plugin") {
             id = "yarnforge-plugin"
             implementationClass = "me.ramidzkh.yarnforge.YarnForgePlugin"
         }

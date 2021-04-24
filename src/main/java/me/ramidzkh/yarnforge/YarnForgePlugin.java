@@ -18,7 +18,6 @@ package me.ramidzkh.yarnforge;
 
 import me.ramidzkh.yarnforge.task.BaseRemappingTask;
 import me.ramidzkh.yarnforge.task.ForgeRemapTask;
-import me.ramidzkh.yarnforge.task.SourceSetRemapTask;
 import me.ramidzkh.yarnforge.task.UserRemapTask;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import net.minecraftforge.gradle.common.task.ExtractMCPData;
@@ -62,9 +61,6 @@ public class YarnForgePlugin implements Plugin<Project> {
             };
 
             target.getTasks().register("userRemapYarn", UserRemapTask.class, configurationAction);
-            // TODO: Make this the default
-            //  This should be used in UserRemapTask's place
-            target.getTasks().register("sourceSetRemapYarn", SourceSetRemapTask.class, configurationAction);
         } else {
             GenerateSRG createMcp2Obf = (GenerateSRG) target.project("forge").getTasks().getByName("createMcp2Obf");
             target.getTasks().register("forgeRemapYarn", ForgeRemapTask.class, task -> {

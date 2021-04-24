@@ -16,27 +16,35 @@
 
 package me.ramidzkh.yarnforge.task;
 
-import com.cloudbees.diff.Diff;
-import org.apache.commons.io.FileUtils;
+import codechicken.diffpatch.cli.DiffOperation;
+import codechicken.diffpatch.util.LoggingOutputStream;
+import codechicken.diffpatch.util.Utils;
+import codechicken.diffpatch.util.archiver.ArchiveFormat;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.options.Option;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ForgeRemapTask extends BaseRemappingTask {
 
+    private boolean skipClean;
+
     public ForgeRemapTask() {
         setDescription("(Forge specific) Remap sources and patches");
+    }
+
+    @Option(description = "Skip mapping the clean project", option = "skipClean")
+    public void setSkipClean(boolean skip) {
+        this.skipClean = skip;
     }
 
     @TaskAction
@@ -58,6 +66,10 @@ public class ForgeRemapTask extends BaseRemappingTask {
 
         Path mappedClean = dir.resolve("remapped/clean");
         Path mappedPatched = dir.resolve("remapped/patched");
+        Path mappedMain = dir.resolve("remapped/main");
+        Path mappedTest = dir.resolve("remapped/test");
+        Path patches = dir.resolve("remapped/patches");
+        Path patchesArchive = dir.resolve("remapped/patches.zip");
 
         Mercury mercury = createRemapper();
         mercury.getClassPath().addAll(compileClasspath);
@@ -67,7 +79,8 @@ public class ForgeRemapTask extends BaseRemappingTask {
 
             {
                 project.getLogger().lifecycle(":remapping main");
-                mercury.rewrite(main, dir.resolve("remapped/main"));
+                mercury.rewrite(main, mappedMain);
+                System.gc();
             }
 
             {
@@ -76,19 +89,19 @@ public class ForgeRemapTask extends BaseRemappingTask {
                 mercury.getClassPath().addAll(testCompileClasspath);
 
                 try {
-	                mercury.rewrite(test, dir.resolve("remapped/test"));
+                    mercury.rewrite(test, mappedTest);
+                    System.gc();
                 } catch (RuntimeException ex) {
-                	project.getLogger().lifecycle("failed to remap test!");
-                	try {
-		                FileUtils.deleteDirectory(dir.resolve("remapped/test").toFile());
-	                } catch (IOException ignored) {
-                		//
-	                }
+                    project.getLogger().lifecycle("failed to remap test!");
 
+                    try {
+                        Utils.deleteFolder(mappedTest);
+                    } catch (IOException ignored) {
+                    }
                 }
 
-	            mercury.getClassPath().remove(main);
-	            mercury.getClassPath().removeAll(testCompileClasspath);
+                mercury.getClassPath().remove(main);
+                mercury.getClassPath().removeAll(testCompileClasspath);
             }
 
             mercury.getClassPath().remove(patched);
@@ -98,43 +111,32 @@ public class ForgeRemapTask extends BaseRemappingTask {
             project.getLogger().lifecycle(":remapping patched");
             mercury.getClassPath().add(main);
             mercury.rewrite(patched, mappedPatched);
+            System.gc();
             mercury.getClassPath().remove(main);
         }
 
-        {
+        if (!skipClean) {
             project.getLogger().lifecycle(":remapping clean");
             mercury.rewrite(clean, mappedClean);
+            System.gc();
         }
 
         {
             project.getLogger().lifecycle(":diffing");
-            Files.walk(mappedClean)
-                    .filter(Files::isRegularFile)
-                    .forEach(c -> {
-                        Path file = mappedClean.relativize(c);
-
-                        try {
-                            String patch = makePatch(file.toString(), new String(Files.readAllBytes(c)), new String(Files.readAllBytes(mappedPatched.resolve(file))));
-
-                            if (patch != null) {
-                                Path p = dir.resolve("remapped/patches").resolve(file + ".patch");
-                                Files.createDirectories(p.getParent());
-                                Files.write(p, patch.getBytes(), StandardOpenOption.CREATE);
-                            }
-                        } catch (IOException exception) {
-                            exception.printStackTrace();
-                        }
-                    });
-
+            DiffOperation.builder()
+                    .logTo(new LoggingOutputStream(getLogger(), LogLevel.LIFECYCLE))
+                    .aPath(mappedClean)
+                    .bPath(mappedPatched)
+                    .outputPath(patchesArchive, ArchiveFormat.ZIP).build().operate();
         }
-    }
 
-    private static String makePatch(String relative, String a, String b) throws IOException {
-        String originalRelative = "a/" + relative.replace('\\', '/');
-        String modifiedRelative = "b/" + relative.replace('\\', '/');
-        String originalData = a.replace("\r\n", "\n");
-        String modifiedData = b.replace("\r\n", "\n");
-        Diff diff = Diff.diff(new StringReader(originalData), new StringReader(modifiedData), false);
-        return !diff.isEmpty() ? diff.toUnifiedDiff(originalRelative, modifiedRelative, new StringReader(originalData), new StringReader(modifiedData), 3).replaceAll("\r?\n", "\n") : null;
+        {
+            project.getLogger().lifecycle(":extracting");
+
+            project.copy(copy -> {
+                copy.from(project.zipTree(patchesArchive));
+                copy.into(patches);
+            });
+        }
     }
 }

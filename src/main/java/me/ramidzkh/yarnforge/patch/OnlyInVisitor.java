@@ -88,6 +88,7 @@ public class OnlyInVisitor extends ASTVisitor {
                 .map(IMemberValuePairBinding::getValue);
     }
 
+    @SuppressWarnings("unused")
     private enum Dist {
         CLIENT("CLIENT"),
         DEDICATED_SERVER("SERVER");

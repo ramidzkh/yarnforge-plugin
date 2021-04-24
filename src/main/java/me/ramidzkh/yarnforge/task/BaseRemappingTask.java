@@ -16,8 +16,6 @@
 
 package me.ramidzkh.yarnforge.task;
 
-import com.amadornes.artifactural.api.artifact.ArtifactIdentifier;
-import com.amadornes.artifactural.api.repository.ArtifactProvider;
 import me.ramidzkh.yarnforge.patch.YarnForgeRewriter;
 import me.ramidzkh.yarnforge.util.MappingBridge;
 import me.ramidzkh.yarnforge.util.Pair;
@@ -26,6 +24,8 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.commands.CommandMergeJar;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
+import net.minecraftforge.artifactural.api.artifact.ArtifactIdentifier;
+import net.minecraftforge.artifactural.api.repository.ArtifactProvider;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
 import org.cadixdev.bombe.analysis.CachingInheritanceProvider;
@@ -51,7 +51,10 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -105,7 +108,7 @@ public abstract class BaseRemappingTask extends DefaultTask {
         }
 
         mercury.getProcessors().add(MercuryRemapper.create(mappings));
-        mercury.getProcessors().add(new YarnForgeRewriter(mappings));
+        mercury.getProcessors().add(new YarnForgeRewriter());
         return mercury;
     }
 
