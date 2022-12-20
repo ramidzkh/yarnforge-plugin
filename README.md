@@ -1,3 +1,5 @@
+Hello everyone, it's been a while. Forge now uses official Mojang mappings, and so should you if you wish to bring your Forge codebase to Fabric. Nevertheless, this tool *should* work, but I won't be updating it.
+
 # YarnForge Gradle plugin
 A Forge specific Gradle plugin to remap its sources to Yarn.
 If your project is using any version of ForgeGradle 3, make sure to switch to the `FG_3.0` tag.
